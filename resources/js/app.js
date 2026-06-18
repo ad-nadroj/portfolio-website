@@ -40,8 +40,9 @@ document.addEventListener('alpine:init', () => {
         scrollY: 0,
         autoScrollStep: null,
         isAutoPlaying: false,
-        lastProgrammaticScroll: undefined,
+        isProgrammaticallyScrolling: false,
         showOnboarding: true,
+        resizeListener: null,
 
         init() {
             window.addEventListener('keydown', (e) => {
@@ -78,7 +79,7 @@ document.addEventListener('alpine:init', () => {
                     this.scrollY = currentScroll;
                     
                     if (this.isAutoPlaying) {
-                        if (this.lastProgrammaticScroll === undefined || Math.abs(currentScroll - this.lastProgrammaticScroll) > 2) {
+                        if (!this.isProgrammaticallyScrolling) {
                             this.toggleAutoPlay();
                         }
                     }
@@ -89,7 +90,7 @@ document.addEventListener('alpine:init', () => {
                     this.scrollY = currentScroll;
                     
                     if (this.isAutoPlaying) {
-                        if (this.lastProgrammaticScroll === undefined || Math.abs(currentScroll - this.lastProgrammaticScroll) > 2) {
+                        if (!this.isProgrammaticallyScrolling) {
                             this.toggleAutoPlay();
                         }
                     }
@@ -197,6 +198,10 @@ document.addEventListener('alpine:init', () => {
                     gsap.ticker.remove(this.autoScrollStep);
                     this.autoScrollStep = null;
                 }
+                if (this.resizeListener) {
+                    window.removeEventListener('resize', this.resizeListener);
+                    this.resizeListener = null;
+                }
                 this.isAutoPlaying = false;
             } else {
                 this.isAutoPlaying = true;
@@ -204,8 +209,24 @@ document.addEventListener('alpine:init', () => {
                 
                 let lastTime = gsap.ticker.time * 1000;
                 let exactScroll = scroller ? scroller.scrollTop : window.scrollY;
-                this.lastProgrammaticScroll = Math.round(exactScroll);
                 const targetDuration = this.activeSlide === 'agentic-framework' ? 30000 : 22000;
+                
+                // Cache maxScroll outside the frame loop to prevent Layout Thrashing
+                let maxScroll = 0;
+                const updateMaxScroll = () => {
+                    maxScroll = scroller ? scroller.scrollHeight - scroller.clientHeight : document.documentElement.scrollHeight - window.innerHeight;
+                };
+                updateMaxScroll();
+
+                // Recalculate maxScroll on window resize with a debounce window
+                let resizeTimeout;
+                this.resizeListener = () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        updateMaxScroll();
+                    }, 150);
+                };
+                window.addEventListener('resize', this.resizeListener);
                 
                 this.autoScrollStep = () => {
                     if (!this.isAutoPlaying) return;
@@ -214,7 +235,6 @@ document.addEventListener('alpine:init', () => {
                     const dt = Math.min(currentTime - lastTime, 50); // cap dt to 50ms to prevent massive jumps
                     lastTime = currentTime;
                     
-                    const maxScroll = scroller ? scroller.scrollHeight - scroller.clientHeight : document.documentElement.scrollHeight - window.innerHeight;
                     const speedPerMs = maxScroll / targetDuration;
                     
                     exactScroll += speedPerMs * dt;
@@ -222,13 +242,14 @@ document.addEventListener('alpine:init', () => {
                     if (exactScroll >= maxScroll - 2) {
                         this.toggleAutoPlay();
                     } else {
+                        this.isProgrammaticallyScrolling = true;
                         if (scroller) {
                             scroller.scrollTop = exactScroll;
-                            this.lastProgrammaticScroll = Math.round(scroller.scrollTop);
                         } else {
                             window.scrollTo(0, exactScroll);
-                            this.lastProgrammaticScroll = Math.round(window.scrollY);
                         }
+                        this.isProgrammaticallyScrolling = false;
+
                         // Force GSAP ScrollTrigger to update immediately before the next paint
                         // This entirely eliminates the 1-frame pin snapping/jitter issue
                         if (window.ScrollTrigger) {

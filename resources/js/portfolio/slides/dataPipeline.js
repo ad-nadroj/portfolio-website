@@ -9,6 +9,8 @@ export default function dataPipelineStory() {
     let cdcInterval = null;
     let mm = null;
     let ambientTween = null;
+    let deactivateHandler = null;
+    let pulseTweens = [];
 
     // Timeline nav segment boundaries (computed dynamically from labels)
     let segments = null;
@@ -177,11 +179,11 @@ export default function dataPipelineStory() {
                 });
 
                 startCDCStream(cdcLogContainer);
-
-                if (pulse1) gsap.to(pulse1, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
-                if (pulse2) gsap.to(pulse2, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
-                if (pulse1Mobile) gsap.to(pulse1Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
-                if (pulse2Mobile) gsap.to(pulse2Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
+ 
+                if (pulse1) { pulseTweens.push(gsap.to(pulse1, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
+                if (pulse2) { pulseTweens.push(gsap.to(pulse2, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
+                if (pulse1Mobile) { pulseTweens.push(gsap.to(pulse1Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
+                if (pulse2Mobile) { pulseTweens.push(gsap.to(pulse2Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
 
                 mm = gsap.matchMedia();
 
@@ -417,6 +419,14 @@ export default function dataPipelineStory() {
                 }
             };
             window.addEventListener('scrollytelling-seek-segment', this.seekSegmentHandler);
+
+            deactivateHandler = (e) => {
+                const targetSlide = e.detail?.slide || e.detail[0]?.slide || e.detail;
+                if (targetSlide === 'data-engineering') {
+                    this.destroy();
+                }
+            };
+            window.addEventListener('slide-deactivate', deactivateHandler);
         },
 
         seekTo(segmentKey) {
@@ -455,6 +465,10 @@ export default function dataPipelineStory() {
         },
 
         destroy() {
+            if (deactivateHandler) {
+                window.removeEventListener('slide-deactivate', deactivateHandler);
+                deactivateHandler = null;
+            }
             if (this.seekSegmentHandler) {
                 window.removeEventListener('scrollytelling-seek-segment', this.seekSegmentHandler);
             }
@@ -476,6 +490,8 @@ export default function dataPipelineStory() {
                 ambientTween.kill();
                 ambientTween = null;
             }
+            pulseTweens.forEach(t => t.kill());
+            pulseTweens = [];
             if (cdcInterval) {
                 clearInterval(cdcInterval);
                 cdcInterval = null;

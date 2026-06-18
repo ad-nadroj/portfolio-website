@@ -3,7 +3,6 @@
     @start-slide-swap.window="onStartSlideSwap($event.detail)"
     @onboarding-complete-play.window="showOnboarding = false; if (!isAutoPlaying) { toggleAutoPlay(); }"
     @onboarding-complete-scroll.window="showOnboarding = false"
-    @onboarding-dismissing.window="showOnboarding = false"
     class="relative w-full h-full bg-[#0a0f1c] text-white selection:bg-blue-500 selection:text-white font-sans overflow-hidden flex flex-col">
 
     <!-- Slide Fade Transition Overlay & Futuristic Loading Animation -->
@@ -51,7 +50,7 @@
 
         <!-- Main Content Container -->
         <div id="scrollytelling-canvas" x-ref="canvas"
-            class="relative z-10 h-full w-full flex flex-col items-center justify-start overflow-hidden">
+            class="relative z-10 min-h-full w-full flex flex-col items-center justify-start overflow-hidden">
             {{ $slot }}
 
             <!-- Timeline Navigator -->

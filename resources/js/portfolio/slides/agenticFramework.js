@@ -9,6 +9,8 @@ export default function agenticFrameworkStory() {
     const SEGMENT_KEYS = ['prompt', 'reason', 'action'];
     let navElements = null;
     let ambientNodes = null;
+    let deactivateHandler = null;
+    let pulseTweens = [];
 
     function resolveNavElements(canvas) {
         const nav = canvas.closest('[x-data]')?.querySelector('.timeline-nav');
@@ -129,10 +131,10 @@ export default function agenticFrameworkStory() {
                 const pulse2Mobile = slideRoot.querySelector('.flow-pulse-2-mobile');
 
                 // Ambient animations
-                if (pulse1) gsap.to(pulse1, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
-                if (pulse2) gsap.to(pulse2, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
-                if (pulse1Mobile) gsap.to(pulse1Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
-                if (pulse2Mobile) gsap.to(pulse2Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" });
+                if (pulse1) { pulseTweens.push(gsap.to(pulse1, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
+                if (pulse2) { pulseTweens.push(gsap.to(pulse2, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
+                if (pulse1Mobile) { pulseTweens.push(gsap.to(pulse1Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
+                if (pulse2Mobile) { pulseTweens.push(gsap.to(pulse2Mobile, { strokeDashoffset: -100, duration: 3, repeat: -1, ease: "none" })); }
 
                 // Swarm nodes float
                 ambientNodes = gsap.to(agentNodes, {
@@ -686,6 +688,14 @@ export default function agenticFrameworkStory() {
                 }
             };
             window.addEventListener('scrollytelling-seek-segment', this.seekSegmentHandler);
+
+            deactivateHandler = (e) => {
+                const targetSlide = e.detail?.slide || e.detail[0]?.slide || e.detail;
+                if (targetSlide === 'agentic-framework') {
+                    this.destroy();
+                }
+            };
+            window.addEventListener('slide-deactivate', deactivateHandler);
         },
 
         seekTo(segmentKey) {
@@ -724,6 +734,10 @@ export default function agenticFrameworkStory() {
         },
 
         destroy() {
+            if (deactivateHandler) {
+                window.removeEventListener('slide-deactivate', deactivateHandler);
+                deactivateHandler = null;
+            }
             if (this.seekSegmentHandler) {
                 window.removeEventListener('scrollytelling-seek-segment', this.seekSegmentHandler);
             }
@@ -745,6 +759,8 @@ export default function agenticFrameworkStory() {
                 ambientNodes.kill();
                 ambientNodes = null;
             }
+            pulseTweens.forEach(t => t.kill());
+            pulseTweens = [];
             initialized = false;
         }
     };

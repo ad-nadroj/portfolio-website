@@ -18,7 +18,8 @@ new class extends Component
 <div x-data="{ transitioning: false, showOnboarding: true }"
      @start-slide-swap.window="transitioning = true"
      @slide-changed.window="setTimeout(() => transitioning = false, 400)"
-     @onboarding-dismissing.window="showOnboarding = false"
+     @onboarding-complete-play.window="showOnboarding = false"
+     @onboarding-complete-scroll.window="showOnboarding = false"
      class="flex flex-col w-full h-full relative text-white font-sans overflow-hidden">
     <!-- Top Branded Premium Navigation Header -->
     <header
@@ -29,7 +30,7 @@ new class extends Component
             <span class="text-white font-semibold tracking-wider text-sm uppercase">Portfolio</span>
         </div>
         <nav class="flex items-center gap-4 md:gap-8 transition-opacity duration-300" :class="{ 'pointer-events-none opacity-60': transitioning }">
-            <button @click="if ('{{ $activeSlide }}' !== 'data-engineering') { $dispatch('start-slide-swap', { target: 'data-engineering', active: '{{ $activeSlide }}', wire: $wire }); }"
+            <button @click="if ($wire.activeSlide !== 'data-engineering') { $dispatch('start-slide-swap', { target: 'data-engineering', active: $wire.activeSlide, wire: $wire }); }"
                 class="text-[10px] md:text-xs font-mono tracking-widest uppercase transition-colors cursor-pointer focus:outline-none"
                 @class([
                     'text-blue-400 font-bold' => $activeSlide === 'data-engineering',
@@ -37,7 +38,7 @@ new class extends Component
                 ])>
                 Data Engineering
             </button>
-            <button @click="if ('{{ $activeSlide }}' !== 'system-architecture') { $dispatch('start-slide-swap', { target: 'system-architecture', active: '{{ $activeSlide }}', wire: $wire }); }"
+            <button @click="if ($wire.activeSlide !== 'system-architecture') { $dispatch('start-slide-swap', { target: 'system-architecture', active: $wire.activeSlide, wire: $wire }); }"
                 class="text-[10px] md:text-xs font-mono tracking-widest uppercase transition-colors cursor-pointer focus:outline-none"
                 @class([
                     'text-indigo-400 font-bold' => $activeSlide === 'system-architecture',
@@ -45,7 +46,7 @@ new class extends Component
                 ])>
                 Architecture
             </button>
-            <button @click="if ('{{ $activeSlide }}' !== 'agentic-framework') { $dispatch('start-slide-swap', { target: 'agentic-framework', active: '{{ $activeSlide }}', wire: $wire }); }"
+            <button @click="if ($wire.activeSlide !== 'agentic-framework') { $dispatch('start-slide-swap', { target: 'agentic-framework', active: $wire.activeSlide, wire: $wire }); }"
                 class="text-[10px] md:text-xs font-mono tracking-widest uppercase transition-colors cursor-pointer focus:outline-none"
                 @class([
                     'text-rose-400 font-bold' => $activeSlide === 'agentic-framework',
