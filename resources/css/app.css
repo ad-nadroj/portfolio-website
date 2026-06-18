@@ -1,0 +1,349 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+.mask-linear-fade {
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+/* ── Timeline Navigator ─────────────────────────────── */
+.timeline-container {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 40;
+    pointer-events: none;
+    width: max-content;
+}
+
+.timeline-container > * {
+    pointer-events: auto;
+}
+
+.timeline-nav {
+    width: auto;
+    max-width: 480px;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.timeline-nav-inner {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 4px;
+    gap: 2px;
+}
+
+.timeline-segment {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 999px;
+    padding: 0 14px;
+    height: 28px;
+    transition: background 0.2s ease;
+    border: none;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+.timeline-segment:focus,
+.timeline-segment:active {
+    outline: none;
+    border: none;
+    box-shadow: none;
+}
+
+.timeline-segment:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Progress fill bar behind each segment */
+.timeline-segment-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(0);
+    pointer-events: none;
+    will-change: transform;
+    border-radius: 999px;
+}
+
+.timeline-segment:nth-of-type(1) .timeline-segment-fill {
+    background: rgba(244, 63, 94, 0.12);
+}
+.timeline-segment:nth-of-type(2) .timeline-segment-fill {
+    background: rgba(59, 130, 246, 0.12);
+}
+.timeline-segment:nth-of-type(3) .timeline-segment-fill {
+    background: rgba(34, 211, 238, 0.12);
+}
+
+/* Segment indicator dot */
+.timeline-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.timeline-segment:nth-of-type(1) .timeline-dot {
+    background: rgb(244, 63, 94);
+}
+.timeline-segment:nth-of-type(2) .timeline-dot {
+    background: rgb(59, 130, 246);
+}
+.timeline-segment:nth-of-type(3) .timeline-dot {
+    background: rgb(34, 211, 238);
+}
+
+/* Active state glow on dot */
+.timeline-segment.is-active .timeline-dot {
+    transform: scale(1.25);
+}
+.timeline-segment:nth-of-type(1).is-active .timeline-dot {
+    box-shadow: 0 0 8px rgba(244, 63, 94, 0.7);
+}
+.timeline-segment:nth-of-type(2).is-active .timeline-dot {
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.7);
+}
+.timeline-segment:nth-of-type(3).is-active .timeline-dot {
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.7);
+}
+
+/* Segment labels */
+.timeline-label {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.5);
+    transition: color 0.25s ease;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.timeline-segment.is-active .timeline-label {
+    color: rgba(226, 232, 240, 0.9);
+}
+
+.timeline-segment:hover .timeline-label {
+    color: rgba(203, 213, 225, 0.7);
+}
+
+/* Global progress track (thin line at top of pill) */
+.timeline-progress-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.timeline-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, rgb(244, 63, 94), rgb(59, 130, 246), rgb(34, 211, 238));
+}
+
+/* Dividers between segments */
+.timeline-divider {
+    width: 1px;
+    height: 14px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Play/Pause Button */
+.timeline-play-pause-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: transparent;
+    color: rgba(148, 163, 184, 0.7);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    outline: none;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.timeline-play-pause-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.95);
+    transform: scale(1.05);
+}
+
+.timeline-play-pause-btn:active {
+    transform: scale(0.95);
+}
+
+.timeline-play-pause-btn.is-playing {
+    color: rgb(34, 211, 238); /* Cyan glow color */
+    filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+}
+
+.timeline-play-pause-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.timeline-play-pause-btn:hover svg {
+    transform: scale(1.05);
+}
+
+/* Downward Skip Button */
+.timeline-skip-down-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(148, 163, 184, 0.85);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: skip-bounce 2s infinite;
+}
+
+.timeline-skip-down-btn:hover {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    animation-play-state: paused;
+}
+
+.timeline-skip-down-btn:active {
+    transform: translateY(1px);
+}
+
+.timeline-skip-down-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.timeline-skip-down-btn:hover svg {
+    transform: scale(1.05);
+}
+
+@keyframes skip-bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-4px);
+    }
+    60% {
+        transform: translateY(-2px);
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+    .timeline-container {
+        max-width: calc(100% - 32px);
+        bottom: 16px;
+        gap: 6px;
+    }
+
+    .timeline-nav {
+        max-width: 100%;
+    }
+
+    .timeline-nav-inner {
+        height: 32px;
+        padding: 0 3px;
+        gap: 1px;
+    }
+
+    .timeline-play-pause-btn {
+        width: 24px;
+        height: 24px;
+        margin-left: 1px;
+    }
+
+    .timeline-play-pause-btn svg {
+        width: 10px;
+        height: 10px;
+    }
+
+    .timeline-skip-down-btn {
+        width: 28px;
+        height: 28px;
+        animation: none; /* Disable bounce on mobile to preserve layout stability */
+    }
+
+    .timeline-skip-down-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .timeline-segment {
+        height: 24px;
+        padding: 0 10px;
+        gap: 5px;
+    }
+
+    .timeline-label {
+        font-size: 9px;
+    }
+
+    .timeline-dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    .timeline-divider {
+        height: 12px;
+    }
+}
+
+/* ── Loading Animation Keyframes & Utilities ──────────────── */
+@keyframes spin-reverse {
+    from {
+        transform: rotate(360deg);
+    }
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+.animate-reverse-spin {
+    animation: spin-reverse 1.5s linear infinite;
+}
+
