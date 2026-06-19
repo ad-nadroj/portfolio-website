@@ -25,10 +25,6 @@ export default function agenticFrameworkStory() {
     function updateTimelineNav(progress) {
         if (!navElements || !segments) return;
 
-        if (navElements.progressBar) {
-            navElements.progressBar.style.width = `${(progress * 100).toFixed(1)}%`;
-        }
-
         let activeKey = 'prompt';
         if (segments.action && progress >= segments.action.start) {
             activeKey = 'action';
@@ -36,13 +32,11 @@ export default function agenticFrameworkStory() {
             activeKey = 'reason';
         }
 
-        // Dispatch progress to window for the Debug HUD
-        const scroller = document.getElementById('scrollytelling-scroll-container');
+        // Dispatch progress to window (scrollY layout read removed to prevent layout thrashing)
         window.dispatchEvent(new CustomEvent('scrollytelling-progress', {
             detail: {
                 progress: progress,
-                activeKey: activeKey,
-                scrollY: Math.round(scroller ? scroller.scrollTop : window.scrollY)
+                activeKey: activeKey
             }
         }));
 
@@ -206,15 +200,15 @@ export default function agenticFrameworkStory() {
 
 
                     // Act 1 Pulse to Orchestrator
-                    gsap.set(pulsePacket, { left: "16%", top: "50%", xPercent: -50, yPercent: -50 });
+                    gsap.set(pulsePacket, { left: "16%", top: "50%", x: 0, y: 0, xPercent: -50, yPercent: -50 });
                     timeline.to(pulsePacket, {
                         opacity: 1,
                         scale: 1,
                         duration: reduceMotion ? 0 : 0.2
                     }, 1.2)
                     .to(pulsePacket, {
-                        left: "50%",
-                        top: "35%",
+                        x: () => pulsePacket.parentElement.clientWidth * 0.34, // (50% - 16%)
+                        y: () => -pulsePacket.parentElement.clientHeight * 0.15, // (35% - 50%)
                         duration: reduceMotion ? 0 : 0.8,
                         ease: "power2.inOut"
                     }, 1.4)
@@ -490,15 +484,15 @@ export default function agenticFrameworkStory() {
                     }, 10.8);
 
                     // Data packet: Hermes → Controller → Orchestrator
-                    gsap.set(dataPacket, { left: "50%", top: "50%", xPercent: -50, yPercent: -50 });
+                    gsap.set(dataPacket, { left: "50%", top: "50%", x: 0, y: 0, xPercent: -50, yPercent: -50 });
                     timeline.to(dataPacket, {
                         opacity: 1,
                         scale: 1.2,
                         duration: reduceMotion ? 0 : 0.2
                     }, 11.0)
                     .to(dataPacket, {
-                        left: "78%",
-                        top: "50%",
+                        x: () => dataPacket.parentElement.clientWidth * 0.28, // (78% - 50%)
+                        y: 0,
                         duration: reduceMotion ? 0 : 0.5,
                         ease: "power2.in"
                     }, 11.2)
@@ -515,15 +509,15 @@ export default function agenticFrameworkStory() {
                     }, 11.0);
 
                     // Controller Ping → Orchestrator
-                    gsap.set(controllerPing, { left: "78%", top: "50%", xPercent: -50, yPercent: -50 });
+                    gsap.set(controllerPing, { left: "78%", top: "50%", x: 0, y: 0, xPercent: -50, yPercent: -50 });
                     timeline.to(controllerPing, {
                         opacity: 1,
                         scale: 1.1,
                         duration: reduceMotion ? 0 : 0.1
                     }, 11.6)
                     .to(controllerPing, {
-                        left: "50%",
-                        top: "20%",
+                        x: () => -controllerPing.parentElement.clientWidth * 0.28, // (50% - 78%)
+                        y: () => -controllerPing.parentElement.clientHeight * 0.30, // (20% - 50%)
                         duration: reduceMotion ? 0 : 0.5,
                         ease: "power2.out"
                     }, 11.7)

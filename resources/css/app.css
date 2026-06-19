@@ -168,7 +168,10 @@
 
 .timeline-progress-bar {
     height: 100%;
-    width: 0%;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left center;
+    will-change: transform;
     background: linear-gradient(90deg, rgb(244, 63, 94), rgb(59, 130, 246), rgb(34, 211, 238));
 }
 

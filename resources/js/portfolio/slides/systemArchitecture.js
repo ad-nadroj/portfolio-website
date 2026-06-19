@@ -25,10 +25,6 @@ export default function systemArchitectureStory() {
     function updateTimelineNav(progress) {
         if (!navElements || !segments) return;
 
-        if (navElements.progressBar) {
-            navElements.progressBar.style.width = `${(progress * 100).toFixed(1)}%`;
-        }
-
         let activeKey = 'ingestion';
         if (segments.sync && progress >= segments.sync.start) {
             activeKey = 'sync';
@@ -36,13 +32,11 @@ export default function systemArchitectureStory() {
             activeKey = 'verification';
         }
 
-        // Dispatch progress to window for the Debug HUD
-        const scroller = document.getElementById('scrollytelling-scroll-container');
+        // Dispatch progress to window (scrollY layout read removed to prevent layout thrashing)
         window.dispatchEvent(new CustomEvent('scrollytelling-progress', {
             detail: {
                 progress: progress,
-                activeKey: activeKey,
-                scrollY: Math.round(scroller ? scroller.scrollTop : window.scrollY)
+                activeKey: activeKey
             }
         }));
 

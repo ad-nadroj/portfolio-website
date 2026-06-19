@@ -38,14 +38,17 @@ document.addEventListener('alpine:init', () => {
         progress: 0,
         activeKey: 'ingestion',
         scrollY: 0,
+        lastProgrammaticScrollY: 0,
         autoScrollStep: null,
         isAutoPlaying: false,
         isProgrammaticallyScrolling: false,
         showOnboarding: true,
-        resizeListener: null,
-
+        keydownListener: null,
+        slideChangedListener: null,
+        scrollListener: null,
+ 
         init() {
-            window.addEventListener('keydown', (e) => {
+            this.keydownListener = (e) => {
                 const activeEl = document.activeElement;
                 const isInput = activeEl && (
                     activeEl.tagName === 'INPUT' ||
@@ -53,48 +56,60 @@ document.addEventListener('alpine:init', () => {
                     activeEl.tagName === 'SELECT' ||
                     activeEl.isContentEditable
                 );
-
+ 
                 if (isInput) return;
-
+ 
                 if (e.key === ' ' || e.code === 'Space') {
                     e.preventDefault();
                     if (this.showOnboarding) return;
                     this.toggleAutoPlay();
                 }
-            });
-
+            };
+            window.addEventListener('keydown', this.keydownListener);
+ 
             // Listen for Livewire slide swaps
-            window.addEventListener('slide-changed', (e) => {
+            this.slideChangedListener = (e) => {
                 const targetSlide = e.detail?.slide || e.detail[0]?.slide || e.detail;
                 if (targetSlide) {
                     this.handleSlideChange(targetSlide);
                 }
-            });
-
+            };
+            window.addEventListener('slide-changed', this.slideChangedListener);
+ 
             // Track scroll position dynamically from the container
             const scroller = document.getElementById('scrollytelling-scroll-container');
+            this.scrollListener = () => {
+                const currentScroll = Math.round(scroller ? scroller.scrollTop : window.scrollY);
+                this.scrollY = currentScroll;
+                
+                if (this.isAutoPlaying) {
+                    // Check if the scroll difference exceeds a tiny 2px tolerance.
+                    // If it does, it means the user manually scrolled (via wheel/trackpad/key),
+                    // so we should cancel the auto-play.
+                    const diff = Math.abs(currentScroll - this.lastProgrammaticScrollY);
+                    if (diff > 2) {
+                        this.toggleAutoPlay();
+                    }
+                }
+            };
             if (scroller) {
-                scroller.addEventListener('scroll', () => {
-                    const currentScroll = Math.round(scroller.scrollTop);
-                    this.scrollY = currentScroll;
-                    
-                    if (this.isAutoPlaying) {
-                        if (!this.isProgrammaticallyScrolling) {
-                            this.toggleAutoPlay();
-                        }
-                    }
-                });
+                scroller.addEventListener('scroll', this.scrollListener);
             } else {
-                window.addEventListener('scroll', () => {
-                    const currentScroll = Math.round(window.scrollY);
-                    this.scrollY = currentScroll;
-                    
-                    if (this.isAutoPlaying) {
-                        if (!this.isProgrammaticallyScrolling) {
-                            this.toggleAutoPlay();
-                        }
-                    }
-                });
+                window.addEventListener('scroll', this.scrollListener);
+            }
+        },
+
+        destroy() {
+            window.removeEventListener('keydown', this.keydownListener);
+            window.removeEventListener('slide-changed', this.slideChangedListener);
+            const scroller = document.getElementById('scrollytelling-scroll-container');
+            if (scroller) {
+                scroller.removeEventListener('scroll', this.scrollListener);
+            } else {
+                window.removeEventListener('scroll', this.scrollListener);
+            }
+            if (this.isAutoPlaying) {
+                this.toggleAutoPlay();
             }
         },
 
@@ -185,10 +200,10 @@ document.addEventListener('alpine:init', () => {
             this.progress = detail.progress;
             this.activeKey = detail.activeKey;
             
-            // update progress bar width directly for smooth UI
+            // update progress bar transform directly for smooth UI (no layout thrashing)
             const pb = this.$refs.timelineProgressBar;
             if (pb) {
-                pb.style.width = `${(this.progress * 100).toFixed(1)}%`;
+                pb.style.transform = `scaleX(${this.progress})`;
             }
         },
 
@@ -209,6 +224,7 @@ document.addEventListener('alpine:init', () => {
                 
                 let lastTime = gsap.ticker.time * 1000;
                 let exactScroll = scroller ? scroller.scrollTop : window.scrollY;
+                this.lastProgrammaticScrollY = Math.round(exactScroll);
                 const targetDuration = this.activeSlide === 'agentic-framework' ? 30000 : 22000;
                 
                 // Cache maxScroll outside the frame loop to prevent Layout Thrashing
@@ -248,6 +264,7 @@ document.addEventListener('alpine:init', () => {
                         } else {
                             window.scrollTo(0, exactScroll);
                         }
+                        this.lastProgrammaticScrollY = Math.round(exactScroll);
                         this.isProgrammaticallyScrolling = false;
 
                         // Force GSAP ScrollTrigger to update immediately before the next paint
@@ -314,128 +331,131 @@ document.addEventListener('alpine:init', () => {
     }));
 
     // Register onboarding overlay controller
-    window.Alpine.data('onboardingOverlay', () => ({
-        showOverlay: true,
-        isDismissing: false,
-        entryTimeline: null,
-        exitTimeline: null,
+    window.Alpine.data('onboardingOverlay', () => {
+        let entryTimeline = null;
+        let exitTimeline = null;
 
-        init() {
-            // Part A: Play entry animation immediately on DOM ready
-            this.$nextTick(() => {
-                this.playEntryAnimation();
-            });
+        return {
+            showOverlay: true,
+            isDismissing: false,
 
-            // Global listeners for dismissal
-            const handleScroll = (e) => {
-                if (this.isDismissing) return;
-                this.dismiss('scroll');
-            };
+            init() {
+                // Part A: Play entry animation immediately on DOM ready
+                this.$nextTick(() => {
+                    this.playEntryAnimation();
+                });
 
-            const handleKeyDown = (e) => {
-                if (this.isDismissing) return;
-                if (e.key === ' ' || e.code === 'Space') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.dismiss('space');
-                }
-            };
+                // Global listeners for dismissal
+                const handleScroll = (e) => {
+                    if (this.isDismissing) return;
+                    this.dismiss('scroll');
+                };
 
-            window.addEventListener('wheel', handleScroll, { passive: true });
-            window.addEventListener('touchmove', handleScroll, { passive: true });
-            window.addEventListener('keydown', handleKeyDown);
+                const handleKeyDown = (e) => {
+                    if (this.isDismissing) return;
+                    if (e.key === ' ' || e.code === 'Space') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.dismiss('space');
+                    }
+                };
 
-            this.cleanup = () => {
-                window.removeEventListener('wheel', handleScroll);
-                window.removeEventListener('touchmove', handleScroll);
-                window.removeEventListener('keydown', handleKeyDown);
-            };
-        },
+                window.addEventListener('wheel', handleScroll, { passive: true });
+                window.addEventListener('touchmove', handleScroll, { passive: true });
+                window.addEventListener('keydown', handleKeyDown);
 
-        playEntryAnimation() {
-            const tl = gsap.timeline();
-            this.entryTimeline = tl;
+                this.cleanup = () => {
+                    window.removeEventListener('wheel', handleScroll);
+                    window.removeEventListener('touchmove', handleScroll);
+                    window.removeEventListener('keydown', handleKeyDown);
+                };
+            },
 
-            // Step 1: Fade-in backdrop blur/dark background
-            tl.fromTo('#onboarding-overlay', 
-                { opacity: 0 }, 
-                { opacity: 1, duration: 1.0, ease: 'power2.out' }
-            );
+            playEntryAnimation() {
+                const tl = gsap.timeline();
+                entryTimeline = tl;
 
-            // Step 2: Stagger instructions (Spacebar fades and slides up, Scroll follows 0.5s later)
-            tl.fromTo('#onboarding-spacebar-instruction',
-                { opacity: 0, y: 15 },
-                { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
-                '-=0.4'
-            );
+                // Step 1: Fade-in backdrop blur/dark background
+                tl.fromTo('#onboarding-overlay', 
+                    { opacity: 0 }, 
+                    { opacity: 1, duration: 1.0, ease: 'power2.out' }
+                );
 
-            tl.fromTo('#onboarding-scroll-instruction',
-                { opacity: 0, y: 15 },
-                { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
-                '-=0.3'
-            );
+                // Step 2: Stagger instructions (Spacebar fades and slides up, Scroll follows 0.5s later)
+                tl.fromTo('#onboarding-spacebar-instruction',
+                    { opacity: 0, y: 15 },
+                    { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
+                    '-=0.4'
+                );
 
-            // Step 3: Fade in down-arrow & start infinite oscillation
-            tl.fromTo('#onboarding-down-arrow',
-                { opacity: 0, y: -8 },
-                { 
-                    opacity: 1, 
-                    y: 0, 
-                    duration: 0.6, 
-                    ease: 'power2.out',
+                tl.fromTo('#onboarding-scroll-instruction',
+                    { opacity: 0, y: 15 },
+                    { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
+                    '-=0.3'
+                );
+
+                // Step 3: Fade in down-arrow & start infinite oscillation
+                tl.fromTo('#onboarding-down-arrow',
+                    { opacity: 0, y: -8 },
+                    { 
+                        opacity: 1, 
+                        y: 0, 
+                        duration: 0.6, 
+                        ease: 'power2.out',
+                        onComplete: () => {
+                            gsap.to('#onboarding-down-arrow', {
+                                y: 8,
+                                duration: 1.2,
+                                repeat: -1,
+                                yoyo: true,
+                                ease: 'power1.inOut'
+                            });
+                        }
+                    },
+                    '-=0.2'
+                );
+            },
+
+            dismiss(trigger) {
+                this.isDismissing = true;
+                this.cleanup();
+                this.$dispatch('onboarding-dismissing');
+
+                const tl = gsap.timeline({
                     onComplete: () => {
-                        gsap.to('#onboarding-down-arrow', {
-                            y: 8,
-                            duration: 1.2,
-                            repeat: -1,
-                            yoyo: true,
-                            ease: 'power1.inOut'
-                        });
+                        this.showOverlay = false;
+                        if (trigger === 'space') {
+                            // Hand off and start playing
+                            this.$dispatch('onboarding-complete-play');
+                        } else {
+                            // Hand off without starting play
+                            this.$dispatch('onboarding-complete-scroll');
+                        }
                     }
-                },
-                '-=0.2'
-            );
-        },
+                });
+                exitTimeline = tl;
 
-        dismiss(trigger) {
-            this.isDismissing = true;
-            this.cleanup();
-            this.$dispatch('onboarding-dismissing');
+                // Step 1: UI dissolve (scale down to 0.95 and fade out instantly)
+                tl.to([
+                    '#onboarding-spacebar-instruction',
+                    '#onboarding-scroll-instruction',
+                    '#onboarding-down-arrow'
+                ], {
+                    opacity: 0,
+                    scale: 0.95,
+                    duration: 0.2,
+                    ease: 'power2.in',
+                    stagger: 0.05
+                });
 
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    this.showOverlay = false;
-                    if (trigger === 'space') {
-                        // Hand off and start playing
-                        this.$dispatch('onboarding-complete-play');
-                    } else {
-                        // Hand off without starting play
-                        this.$dispatch('onboarding-complete-scroll');
-                    }
-                }
-            });
-            this.exitTimeline = tl;
-
-            // Step 1: UI dissolve (scale down to 0.95 and fade out instantly)
-            tl.to([
-                '#onboarding-spacebar-instruction',
-                '#onboarding-scroll-instruction',
-                '#onboarding-down-arrow'
-            ], {
-                opacity: 0,
-                scale: 0.95,
-                duration: 0.2,
-                ease: 'power2.in',
-                stagger: 0.05
-            });
-
-            // Step 2: Curtain lift (translate background upward -100% and fade out)
-            tl.to('#onboarding-overlay', {
-                y: '-100%',
-                opacity: 0,
-                duration: 0.6,
-                ease: 'power3.inOut'
-            }, '-=0.1');
-        }
-    }));
+                // Step 2: Curtain lift (translate background upward -100% and fade out)
+                tl.to('#onboarding-overlay', {
+                    y: '-100%',
+                    opacity: 0,
+                    duration: 0.6,
+                    ease: 'power3.inOut'
+                }, '-=0.1');
+            }
+        };
+    });
 });
